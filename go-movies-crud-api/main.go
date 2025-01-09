@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -27,24 +30,99 @@ type Director struct {
 // init create slice to store movies insted of in DB
 var movies []Movie
 
-// TODO: return all the movies
+// set the header content type to json and encode the movies into json
 func getMovies(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(movies)
 }
 
-// TODO: return the specific movie with an ID
+// get the ID in param and find the movie in slice and return it
 func getMovie(w http.ResponseWriter, r *http.Request) {
+	// set the content type to json
+	w.Header().Set("Content-Type", "applictaion/json")
+
+	// get the url params from the request
+	params := mux.Vars(r)
+
+	// loop thorug the movies to find movie
+	for _, movie := range movies {
+		// found a movie and encode it into json and return to response
+		if movie.ID == params["id"] {
+			json.NewEncoder(w).Encode(movie)
+			return
+		}
+	}
 }
 
-// TODO: create a new movie
+// create a movie get data from the user and convert it into go struct
+// and store into slice
 func createMovie(w http.ResponseWriter, r *http.Request) {
+	// set the content type
+	w.Header().Set("Content-Type", "applictaion/json")
+
+	var movie Movie
+
+	// read the data from the body and decode it into go struct
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+
+	// generate the random int for a unique id
+	movie.ID = strconv.Itoa(rand.Intn(1000000))
+
+	// append new movie to teh movie slice
+	movies = append(movies, movie)
+
+	// return the newly created movie
+	json.NewEncoder(w).Encode(movie)
 }
 
-// TODO: udpate a movie with specific ID
+// update the movie from the id
 func updateMovie(w http.ResponseWriter, r *http.Request) {
+	// set the json Content-Type
+	w.Header().Set("Content-Type", "application/json")
+
+	// get the params from the request
+	params := mux.Vars(r)
+
+	// loop through the movies
+	for index, item := range movies {
+		// find the movie
+		if item.ID == params["id"] {
+			// delete the movie from the slice
+			movies = append(movies[:index], movies[index+1:]...)
+
+			var movie Movie
+			// store the new movie
+			_ = json.NewDecoder(r.Body).Decode(&movie)
+			// update the id
+			movie.ID = params["id"]
+			// append back to the movies slice
+			movies = append(movies, movie)
+			json.NewEncoder(w).Encode(movie)
+			return
+		}
+	}
 }
 
-// TODO: delete a movie with specific ID
+// a movie func to delete a movie from the slice
 func deleteMovie(w http.ResponseWriter, r *http.Request) {
+	// set the header
+	w.Header().Set("Content-Type", "applictaion/json")
+
+	// get the params from the request
+	params := mux.Vars(r)
+
+	// loop thorug the movies
+	for index, movie := range movies {
+		// find the movie
+		if movie.ID == params["id"] {
+			// remove the movie from the slice
+			movies = append(movies[:index], movies[index+1:]...)
+			break
+		}
+	}
+
+	// return all the movies
+	json.NewEncoder(w).Encode(movies)
 }
 
 // a main entry point of an applictaion
