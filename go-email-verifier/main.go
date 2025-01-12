@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -21,9 +22,10 @@ func main() {
 	}
 }
 
-// TODO: CheckDomain if valid or invalid
+// CheckDomain function is responsible for the
+// check all the records on domain to verify the email
 func CheckDomain(domain string) {
-	// init the variables
+	// init the variables\
 	var hasMX, hasSPF, hasDMARC bool
 	var spfRecord, DmarcRecord string
 
@@ -38,4 +40,40 @@ func CheckDomain(domain string) {
 	if len(mxRecords) > 0 {
 		hasMX = true
 	}
+
+	// lookup for TXT records to find SPF records
+	textRecords, err := net.LookupTXT(domain)
+	// check weather there is any error
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+	}
+
+	// loop through the spf records and find the spf version
+	for _, record := range textRecords {
+		if strings.HasPrefix(record, "v=spf1") {
+			hasSPF = true
+			spfRecord = record
+			break
+		}
+	}
+
+	// lookup orm dmarc records
+
+	dmarcRecords, err := net.LookupTXT("_dmarc." + domain)
+	// check weather there is any error
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+	}
+
+	// loop through the dmarc records and find the dmarc version
+	for _, record := range dmarcRecords {
+		if strings.HasPrefix(record, "v=DMARC1") {
+			hasDMARC = true
+			DmarcRecord = record
+			break
+		}
+	}
+
+	// output all the details
+	fmt.Printf("%v -- %v -- %v -- %v -- %v -- %v", domain, hasMX, hasSPF, spfRecord, hasDMARC, DmarcRecord)
 }
