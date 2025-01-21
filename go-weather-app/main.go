@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/MuhammadSaim/go-lab/go-weather-app/config"
-
+)
 
 func main() {
 	// laod config
@@ -25,24 +27,30 @@ func main() {
 	}
 
 	// build the url with different params
-	url := fmt.Sprintf("%s?location=%s&apiKey=%s", cfg.TOMORROW_IO_API_URL, location, cfg.TOMORROW_IO_API_KEY)
+	url := fmt.Sprintf("%s?location=%s&apikey=%s", cfg.TOMORROW_IO_API_URL, location, cfg.TOMORROW_IO_API_KEY)
 
-  // build a request the url
-  req, err := http.NewRequest("GET", url, nil)
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error making request:", err)
+		return
+	}
+	defer response.Body.Close()
 
-  // check if there is an error while calling the route
-  if err != nil {
-    fmt.Printf("Error: %v", err)
-    return
-  }
+	// Read and print raw response for debugging
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
 
-  // add some required headers to the request
-  req.Header.Add("accept", "application/json")
-	req.Header.Add("accept-encoding", "deflate, gzip, br")
+	var weather WeatherResponse
+	if err := json.Unmarshal(body, &weather); err != nil {
+		fmt.Println("Error decoding response:", err)
+		return
+	}
 
-  // send the request to get the data
-  res, err := http.DefaultClient.Do(req)
-
-   // check if
-
+	fmt.Println("Weather Data for:", weather.Location.Name)
+	fmt.Println("Temperature:", weather.Data.Values.Temperature, "°C")
+	fmt.Println("Humidity:", weather.Data.Values.Humidity, "%")
+	fmt.Println("Wind Speed:", weather.Data.Values.WindSpeed, "m/s")
 }
